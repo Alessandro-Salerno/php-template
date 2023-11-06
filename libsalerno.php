@@ -1,5 +1,5 @@
 <?php 
-function connectToDatabase($db) {
+function connectToDatabase($db): mysqli {
   $connection = new mysqli("localhost", "root", "", $db);
 
   if ($connection -> connect_error)
@@ -52,7 +52,7 @@ function createTable($result, $fetch = null, $fetch_hdr = null) {
   echo "</table>";
 }
 
-function quoteString($string) {
+function quoteString($string): string {
   return "\"" . $string . "\"";
 }
 
@@ -118,14 +118,20 @@ class QueryBuilder {
     return $this;
   }
 
-  function values(... $values) {
+  function values($autoquote = true, ... $values) {
     $this->string .= " VALUES (";
     foreach ($values as $value) {
-      $this->string .= $value;
+      if ($autoquote) {
+        $this->string .= quoteString($value);
+      } else {
+        $this->string .= $value;
+      }
+
       if ($values[count($values) - 1] == $value) {
         $this->string .= ")";
         break;
       }
+
       $this->string .= ", ";
     }
 
@@ -143,11 +149,10 @@ class QueryBuilder {
       return $this;
     }
 
-    $this->string .= " (";
+    $this->string .= " ";
     foreach ($items as $item) {
       $this->string .= $item;
       if ($items[count($items) - 1] == $item) {
-        $this->string .= ")";
         break;
       }
       $this->string .= ", ";
@@ -215,11 +220,45 @@ class QueryBuilder {
   }
 }
 
-function str() {
+class Database {
+    private static $instances = [];
+    private $connection;
+
+    protected function __construct() { }
+
+    protected function __clone() { }
+
+    public function __wakeup() {
+        throw new \Exception("Cannot unserialize a singleton.");
+    }
+
+    public static function getInstance(): Database {
+        $cls = static::class;
+        if (!isset(self::$instances[$cls])) {
+            self::$instances[$cls] = new static();
+        }
+
+        return self::$instances[$cls];
+    }
+
+    function set($connection) {
+      $this->connection = $connection;
+    }
+
+    function get(): mysqli {
+      return $this->connection;
+    }
+}
+
+function str(): StringEchoer {
   return new StringEchoer();
 }
 
-function query() {
+function query(): QueryBuilder {
   return new QueryBuilder();
+}
+
+function db(): Database {
+  return Database::getInstance();
 }
 ?>

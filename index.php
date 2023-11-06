@@ -14,8 +14,9 @@ function formatTableHeader($queryResult) {
     return $rheader;
 }
 
-createTable(query()->select()->items()->from("persone")->issue(connectToDatabase("utenti")), null, "formatTableHeader");
-// createTable();
+db()->set(connectToDatabase("utenti"));
+createTable(query()->select()->items("nome", "cognome")->from("persone")->issue(db()->get()), null, "formatTableHeader");
+db()->get()->close();
 ?>
 
 <!DOCTYPE html>
